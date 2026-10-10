@@ -2,10 +2,10 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#153f35"><meta name="description" content="七个透明摇奖球仓，旋转搅拌号码球，以重力和真实碰撞生成七星彩模拟结果。">
+  <meta name="theme-color" content="#153f35"><meta name="description" content="七星彩与大乐透物理摇奖模拟器，透明球仓中真实搅拌、重力碰撞与落球，支持前区35选5、后区12选2。">
   <title>七星实验室 · 体育彩票七星彩模拟器</title>
-  <link rel="icon" href="icon.svg"><link rel="stylesheet" href="styles.css">
-  <script src="physics.js" defer></script><script src="app.js" defer></script>
+  <link rel="icon" href="icon.svg"><link rel="stylesheet" href="styles.css?v=2">
+  <script src="physics.js?v=2" defer></script><script src="app.js?v=2" defer></script>
 </head>
 <body>
   <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -33,8 +33,9 @@
   </aside>
   <main>
     <header class="topbar"><div class="breadcrumb">实验室 <span>/</span> <strong id="page-crumb">模拟开奖</strong></div><div class="top-actions"><button id="sound-toggle" class="sound-button" aria-pressed="false" title="开启机械碰撞声音"><svg><use href="#i-muted"/></svg><span>声音关闭</span></button><span class="top-divider"></span><span class="local-badge">浏览器内运行</span></div></header>
+    <div class="game-switch" role="group" aria-label="选择彩票玩法"><span>选择玩法</span><button data-game="qixing" class="active" aria-pressed="true">七星彩<small>七位独立出球</small></button><button data-game="dlt" aria-pressed="false">大乐透<small>前区 5 + 后区 2</small></button></div>
     <section id="view-simulator" class="view">
-      <div class="page-heading"><div><div class="eyebrow">THE BEAUTY OF RANDOMNESS</div><h1>七星彩模拟器<span class="title-star">✳</span></h1><p>让号码球真实碰撞，让每一次落球自然发生。</p></div><div class="rule-pill"><span class="rule-dot"></span>前六位 0–9 <span>/</span> 第七位 0–14</div></div>
+      <div class="page-heading"><div><div class="eyebrow">THE BEAUTY OF RANDOMNESS</div><h1><span id="game-title">七星彩模拟器</span><span class="title-star">✳</span></h1><p id="game-instructions">让号码球真实碰撞，让每一次落球自然发生。</p></div><div class="rule-pill"><span class="rule-dot"></span><span id="game-rules">前六位 0–9 / 第七位 0–14</span></div></div>
       <div class="workspace">
         <section class="machine-panel" aria-labelledby="machine-title">
           <div class="panel-heading"><div><h2 id="machine-title">摇奖球仓</h2><p>旋转搅拌 · 自由碰撞 · 真实落球</p></div><span id="engine-status" class="engine-status"><span class="status-dot"></span>装置就绪</span></div>
@@ -56,7 +57,7 @@
             <div class="control-divider"></div><div class="parameter-heading"><h3>调节摇奖手感</h3><button id="default-params" class="text-button">恢复默认</button></div>
             <label class="range-label" for="power"><span>搅拌力度</span><output id="power-label" for="power">标准</output></label><input id="power" type="range" min="0" max="100" value="50"><div class="range-ends"><span>轻柔</span><span>充分混合</span></div>
             <label class="range-label second-range" for="friction"><span>接触摩擦</span><output id="friction-label" for="friction">适中</output></label><input id="friction" type="range" min="0" max="100" value="50"><div class="range-ends"><span>顺滑</span><span>紧实</span></div>
-            <details class="physics-details"><summary>查看物理参数<span>＋</span></summary><dl><div><dt>号码球数量</dt><dd>10 / 15 颗</dd></div><div><dt>接触摩擦系数</dt><dd id="friction-detail">0.20</dd></div><div><dt>碰撞恢复系数</dt><dd>0.72</dd></div><div><dt>物理更新频率</dt><dd>240 Hz</dd></div></dl></details>
+            <details class="physics-details"><summary>查看物理参数<span>＋</span></summary><dl><div><dt>号码球数量</dt><dd id="ball-count-detail">10 / 15 颗</dd></div><div><dt>接触摩擦系数</dt><dd id="friction-detail">0.20</dd></div><div><dt>碰撞恢复系数</dt><dd>0.72</dd></div><div><dt>物理更新频率</dt><dd>240 Hz</dd></div></dl></details>
           </section>
           <section class="note-panel"><span class="note-icon">✧</span><div><strong>每个结果，都来自真实落球</strong><p>球仓没有预选号码。出球闸门开启后，首颗通过出口的球就是结果。</p></div></section>
         </aside>
@@ -65,7 +66,7 @@
       <section class="recent-panel"><div class="recent-head"><h2>最近的摇奖 <span id="recent-count">0</span></h2><button class="text-button" data-go="history">查看全部 <svg><use href="#i-arrow"/></svg></button></div><div id="recent-history"></div></section>
       <footer class="page-footer"><span>QIXING LAB — 为随机留一点空间。</span><span>仅供模拟体验 · 无投注功能</span></footer>
     </section>
-    <section id="view-history" class="view" hidden><div class="page-heading"><div><div class="eyebrow">EVERY SPIN LEAVES A TRACE</div><h1>运行记录</h1><p>把每一次自然落定，留在这里。</p></div><button id="export-history" class="outline-button"><svg><use href="#i-download"/></svg>导出记录</button></div><section class="history-panel"><div class="history-panel-heading"><h2>模拟历史 <span id="history-total">0</span></h2><span>保存在当前浏览器 · 最多 100 次</span></div><div id="full-history"></div></section></section>
-    <section id="view-about" class="view" hidden><div class="page-heading"><div><div class="eyebrow">BUILT ON THE LAWS OF MOTION</div><h1>关于这台装置</h1><p>看得见的随机，感受得到的物理。</p></div></div><div class="about-grid"><section class="about-card"><div class="about-number">01 / MECHANICS</div><h2>球在转，物理在发生。</h2><p>每颗号码球都有独立的位置、速度和碰撞半径。旋转叶片搅拌球仓，重力让球下落，球与球、球与仓壁的接触会改变运动轨迹。</p><p>充分混合后，底部闸门开启。首颗真正通过出球口的号码球进入透明接球管；闸门随后关闭，保证每仓只出一颗球。</p><div class="about-equation">搅拌 → 碰撞 → 开闸 → 落球</div></section><section class="about-card"><div class="about-number">02 / SEVEN POSITIONS</div><h2>七个球仓，各自落定。</h2><p>按现行七星彩号码范围，前六个球仓各装有 0–9 的 10 颗球，第七个装有 0–14 的 15 颗球。各仓独立，允许重复号码与前导零。</p><p>结果直接读取实际落出的球，不预选号码。调整搅拌力度或摩擦会改变运动轨迹，也可能改变结果。</p><a href="https://www.nmtc.com.cn/ggtz/21145.html" target="_blank" rel="noopener noreferrer" class="text-link">查看官方游戏规则 <svg><use href="#i-arrow"/></svg></a></section><section class="about-card about-wide"><div class="about-number">03 / PLAY YOUR WAY</div><h2>让摇奖有你的节奏。</h2><div class="howto-columns"><div><h3>七仓联动</h3><p>选择力度和摩擦，点击开始。七个球仓依次启动，全部出球后自动保存本次号码。</p></div><div><h3>逐仓摇奖</h3><p>选中一个球仓，点击摇奖按钮。也可聚焦大球仓并按空格启动。依次摇出七颗球，完成一组结果。</p></div><div><h3>声音与记录</h3><p>开启声音，听号码球碰撞的节奏。历史保存在当前浏览器，可复制单组号码或导出记录。</p></div></div><p class="about-footnote">这是二维刚体物理摇奖模拟装置，外观与结构并非官方开奖设备。模拟结果用于体验，不构成号码预测。</p></section></div></section>
+    <section id="view-history" class="view" hidden><div class="page-heading"><div><div class="eyebrow">EVERY SPIN LEAVES A TRACE</div><h1>运行记录</h1><p id="history-game-label">七星彩 · 独立保存</p></div><button id="export-history" class="outline-button"><svg><use href="#i-download"/></svg>导出记录</button></div><section class="history-panel"><div class="history-panel-heading"><h2>模拟历史 <span id="history-total">0</span></h2><span>保存在当前浏览器 · 每种玩法最多 100 次</span></div><div id="full-history"></div></section></section>
+    <section id="view-about" class="view" hidden><div class="page-heading"><div><div class="eyebrow">BUILT ON THE LAWS OF MOTION</div><h1>关于这台装置</h1><p>看得见的随机，感受得到的物理。</p></div></div><div class="about-grid"><section class="about-card"><div class="about-number">01 / MECHANICS</div><h2>球在转，物理在发生。</h2><p>每颗号码球都有独立的位置、速度和碰撞半径。旋转叶片搅拌球仓，重力让球下落，球与球、球与仓壁的接触会改变运动轨迹。</p><p>充分混合后，底部闸门开启。首颗真正通过出球口的号码球进入透明接球管，闸门随后关闭。大乐透会收集这颗球，再打开闸门继续从剩余号码球中出球。</p><div class="about-equation">搅拌 → 碰撞 → 开闸 → 落球</div></section><section class="about-card"><div class="about-number">02 / TWO WAYS TO PLAY</div><h2 id="game-about-title">七个球仓，各自落定。</h2><p id="game-about-rules">前六个球仓各装有 0–9 的 10 颗球，第七个装有 0–14 的 15 颗球。各仓独立，允许重复号码与前导零。</p><p>结果直接读取实际落出的球，不预选号码。调整搅拌力度或摩擦会改变运动轨迹，也可能改变结果。</p><a id="game-rule-link" href="https://www.nmtc.com.cn/ggtz/21145.html" target="_blank" rel="noopener noreferrer" class="text-link">查看官方游戏规则 <svg><use href="#i-arrow"/></svg></a></section><section class="about-card about-wide"><div class="about-number">03 / PLAY YOUR WAY</div><h2>让摇奖有你的节奏。</h2><div class="howto-columns"><div><h3 id="auto-howto-title">七仓联动</h3><p id="auto-howto-copy">选择力度和摩擦，点击开始。七个球仓依次启动，全部出球后自动保存本次号码。</p></div><div><h3 id="manual-howto-title">逐仓摇奖</h3><p id="manual-howto-copy">选中一个球仓，点击摇奖按钮。也可聚焦大球仓并按空格启动。依次摇出七颗球，完成一组结果。</p></div><div><h3>声音与记录</h3><p>开启声音，听号码球碰撞的节奏。两种玩法分别保留历史，可复制单组号码或导出记录。</p></div></div><p class="about-footnote">这是二维刚体物理摇奖模拟装置，外观与结构并非官方开奖设备。模拟结果用于体验，不构成号码预测。</p></section></div></section>
   </main><button id="mobile-start-button" class="mobile-start-button"><svg><use href="#i-orbit"/></svg><span>开始模拟开奖</span><svg><use href="#i-arrow"/></svg></button><div id="toast" class="toast" role="status" aria-live="polite"></div>
 </body></html>

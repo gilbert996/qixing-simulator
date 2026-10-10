@@ -12,17 +12,26 @@
 
   /** Numbered disk rigid bodies inside a circular drum, with an actual outlet. */
   class BallDrumPhysics {
-    constructor({ count, friction = 0.20, restitution = 0.72 } = {}) {
-      if (!Number.isInteger(count) || count < 2 || count > 20) throw new RangeError('count must be 2–20');
+    constructor({ count, numbers = null, friction = 0.20, restitution = 0.72 } = {}) {
+      if (numbers !== null) {
+        if (!Array.isArray(numbers) || new Set(numbers).size !== numbers.length ||
+            !numbers.every((number) => Number.isInteger(number) && number >= 0 && number <= 99)) {
+          throw new RangeError('numbers must be distinct integers between zero and 99');
+        }
+        if (count !== undefined && count !== numbers.length) throw new RangeError('count must match numbers');
+        count = numbers.length;
+      }
+      if (!Number.isInteger(count) || count < 2 || count > 35) throw new RangeError('count must be 2–35');
       if (!Number.isFinite(friction) || friction < 0 || friction > 1 ||
           !Number.isFinite(restitution) || restitution < 0 || restitution > 1) {
         throw new RangeError('friction and restitution must be between zero and one');
       }
       this.count = count;
+      this.numbers = numbers ? [...numbers] : Array.from({ length: count }, (_, index) => index);
       this.friction = friction;
       this.restitution = restitution;
       this.radius = 1;
-      this.ballRadius = count > 10 ? 0.105 : 0.12;
+      this.ballRadius = count > 20 ? 0.080 : count > 10 ? 0.105 : 0.12;
       this.gravity = 4.5;
       this.rotorRadius = 0.66;
       this.rotorBladeRadius = 0.035;
@@ -98,9 +107,10 @@
       const r = this.ballRadius;
       const spacing = r * 2 + 0.027;
       const candidates = [];
-      for (let row = -4; row <= 4; row++) {
+      const limit = this.count > 20 ? Math.ceil((1 - r) / spacing) : 4;
+      for (let row = -limit; row <= limit; row++) {
         const y = row * spacing * 0.866;
-        for (let column = -4; column <= 4; column++) {
+        for (let column = -limit; column <= limit; column++) {
           const x = (column + (Math.abs(row) % 2) * 0.5) * spacing;
           const distance = Math.hypot(x, y);
           if (distance > 1 - r - 0.025 || distance < this.rotorHubRadius + r + 0.02) continue;
@@ -110,8 +120,8 @@
       }
       candidates.sort((a, b) => a.y - b.y || a.x - b.x);
       if (candidates.length < this.count) throw new RangeError('Too many balls for the chamber');
-      return candidates.slice(0, this.count).map((position, number) => ({
-        number, x: position.x, y: position.y, vx: 0, vy: 0,
+      return candidates.slice(0, this.count).map((position, index) => ({
+        number: this.numbers[index], x: position.x, y: position.y, vx: 0, vy: 0,
         radius: r, mass: 1, angle: 0, angularVelocity: 0, captured: false
       }));
     }
@@ -418,5 +428,61 @@
     }
   }
 
-  return { BallDrumPhysics, TAU, FIXED_STEP };
+  /** A single pool, drawing multiple actual balls without replacing them. */
+  class SeriesBallDrumPhysics extends BallDrumPhysics {
+    constructor({ drawCount, ...options } = {}) {
+      super(options);
+      if (!Number.isInteger(drawCount) || drawCount < 1 || drawCount > this.count) {
+        throw new RangeError('drawCount must be between one and the number of balls');
+      }
+      this.drawCount = drawCount;
+    }
+
+    reset() {
+      super.reset();
+      this.mixingDuration = 6.25;
+      this.drawnNumbers = [];
+      this.captureEvents = [];
+      this.collectedBalls = [];
+      this.seriesElapsed = 0;
+      this._capturedRestTime = 0;
+      this._recordedBall = null;
+      return this;
+    }
+
+    _advance(h) {
+      this.seriesElapsed += h;
+      super._advance(h);
+      if (!this.captured) return;
+      if (this._recordedBall !== this.captured) {
+        this._recordedBall = this.captured;
+        this.drawnNumbers.push(this.captured.number);
+        this.captureEvents.push({ ...this.captureEvent,
+          time: this.seriesElapsed - this.elapsed + this.captureEvent.time });
+      }
+      if (this.drawnNumbers.length >= this.drawCount) return;
+      const ball = this.captured;
+      const atRest = Math.abs(ball.y - (this.tubeBottom - ball.radius)) < 0.001 &&
+        Math.hypot(ball.vx, ball.vy) < 0.10;
+      this._capturedRestTime = atRest ? this._capturedRestTime + h : 0;
+      if (this._capturedRestTime < 0.20) return;
+
+      // Move the actual discharged ball into the receiver rack. Remaining
+      // balls retain their physical positions, velocities and identities.
+      this.collectedBalls.push(ball);
+      this.balls = this.balls.filter((other) => other !== ball);
+      this.captured = null;
+      this.captureEvent = null;
+      this._recordedBall = null;
+      this.gateOpen = false;
+      this.settled = false;
+      this.elapsed = 0;
+      this._restTime = 0;
+      this._capturedRestTime = 0;
+      this.lastImpact = -Infinity;
+      this.mixingDuration = 1.75;
+    }
+  }
+
+  return { BallDrumPhysics, SeriesBallDrumPhysics, TAU, FIXED_STEP };
 });
